@@ -1,98 +1,124 @@
-# Aura API-First Companion (No Physical Integration)
+# Aura
 
-This repository contains a starter implementation of the no-physical roadmap:
-- Persistent conversation continuity
-- Persona consistency guards
-- Safety and policy enforcement
-- Consent and privacy controls (GPC + one-click opt-out)
-- Observability and audit events
-- NVIDIA NIM-ready provider abstraction
+Aura is an API-first AI companion focused on persistent memory, semantic retrieval, consent-aware behavior, and adaptive conversation style.
 
-## Quick Start
+It is built to feel more continuous than a normal chat assistant:
+- it remembers relevant context,
+- it retrieves semantically similar memories,
+- it adapts tone to the user,
+- it can use NVIDIA NIM when configured,
+- and it falls back safely when model access is unavailable.
 
-1. Create and activate a Python environment.
-2. Install dependencies:
-   - `pip install -r requirements.txt`
-3. Run database migrations:
-   - `alembic upgrade head`
-4. Run API server:
-   - `uvicorn app.main:app --reload`
-5. Open docs:
-   - `http://127.0.0.1:8000/docs`
+## Why this exists
+
+Most assistants reset too often. Aura is designed to keep continuity across sessions without turning the whole experience into a rigid persona script.
+
+## What it can do
+
+- Hold a conversation through a local chat loop or API
+- Store and retrieve long-term memory with semantic RAG
+- Use NVIDIA NIM for live generation when configured
+- Adjust tone dynamically based on user cues
+- Enforce privacy controls like GPC and one-click opt-out
+- Keep audit events for observability
+- Expose a clean FastAPI surface for integration work
+
+## Quick demo
+
+### 1. Start it
+
+```powershell
+.\run_aura_chat.ps1
+```
+
+### 2. Talk to it
+
+Try prompts like:
+- `talk normal`
+- `give me the short version`
+- `step by step plan for today`
+- `I need help thinking through this`
+
+### 3. Inspect the API
+
+Open:
+- `http://127.0.0.1:8000/docs`
+
+## Features
+
+### Conversation
+- JWT-authenticated conversation API
+- Dynamic style adaptation
+- Safety-aware response shaping
+
+### Memory
+- Persistent SQLite-backed memory
+- Semantic retrieval with embeddings
+- Top-k context grounding for each turn
+
+### Governance
+- GPC and one-click opt-out support
+- Purge receipts and audit events
+- Consent-aware processing gates
+
+### Model support
+- NVIDIA NIM chat completions
+- NVIDIA NIM embeddings for semantic RAG
+- Local fallback if model access is unavailable
+
+## Architecture snapshot
+
+```mermaid
+flowchart LR
+  U[User] --> A[FastAPI]
+  A --> O[Conversation Orchestrator]
+  O --> M[Memory Service]
+  O --> S[Policy & Safety]
+  O --> I[Inference Service]
+  I --> NIM[NVIDIA NIM]
+  M --> DB[(SQLite)]
+  A --> C[Consent Service]
+  A --> Q[Observability]
+```
 
 ## Configuration
 
-- `AURA_DATABASE_PATH`: SQLite database path for persistent state.
-   - Default: `data/aura.db`
-- `AURA_JWT_SECRET`: JWT signing secret.
-   - Default: `dev-jwt-secret-change-me`
-- `AURA_JWT_ALGORITHM`: JWT algorithm.
-   - Default: `HS256`
-- `AURA_JWT_EXP_MINUTES`: Token expiry in minutes.
-   - Default: `60`
-- `NVIDIA_NIM_API_KEY`: API key for NVIDIA NIM inference.
-   - Default: empty (stub fallback mode)
-- `NVIDIA_NIM_BASE_URL`: NIM API base URL.
-   - Default: `https://integrate.api.nvidia.com/v1`
-- `NVIDIA_NIM_MODEL`: NIM model identifier.
-   - Default: `qwen/qwen3.5-122b-a10b`
-- `NVIDIA_NIM_EMBED_MODEL`: NIM embedding model for semantic retrieval.
-   - Default: `nvidia/nv-embedqa-e5-v5`
-- `NVIDIA_NIM_TIMEOUT_SECONDS`: HTTP timeout for model calls.
-   - Default: `45`
-- `AURA_RAG_TOP_K`: number of semantically retrieved memory chunks injected into prompts.
-   - Default: `4`
-- `AURA_RAG_EMBEDDING_DIM`: local fallback embedding size when NIM embedding API is unavailable.
-   - Default: `256`
+Set these environment variables if you want to customize runtime behavior:
 
-## Demo Users
+- `NIM_API_KEY` or `NVIDIA_NIM_API_KEY`: NVIDIA NIM API key
+- `NVIDIA_NIM_MODEL`: chat model name
+- `NVIDIA_NIM_EMBED_MODEL`: embedding model name
+- `AURA_RAG_TOP_K`: number of retrieved memories to inject
+- `AURA_DATABASE_PATH`: SQLite database path
+- `AURA_JWT_SECRET`: JWT signing secret
 
-- `admin` / `admin123` scopes: `conversation:write`, `memory:write`, `consent:write`, `observability:read`
-- `analyst` / `analyst123` scopes: `conversation:write`, `memory:write`, `consent:write`
-
-## Get Token
+## Example request
 
 ```bash
 curl -X POST "http://127.0.0.1:8000/v1/auth/token" \
-   -H "Content-Type: application/json" \
-   -d '{"username":"admin","password":"admin123"}'
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
 ```
 
-## Example Request
+## Project status
 
-```bash
-curl -X POST "http://127.0.0.1:8000/v1/conversation/turn" \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer <TOKEN>" \
-   -d '{
-      "user_id": "u1",
-      "session_id": "s1",
-      "message": {"role": "user", "content": "I feel stressed", "modality": "text", "metadata": {}}
-   }'
-```
+This is a working prototype with:
+- live API endpoints,
+- persistence,
+- semantic RAG,
+- and a local interactive chat launcher.
 
-## Migrations
+It is not yet a full production system.
 
-- Create new revision: `alembic revision -m "message"`
-- Apply migrations: `alembic upgrade head`
+## Files worth opening first
 
-## Docker
+- [app/main.py](app/main.py)
+- [app/services/inference_service.py](app/services/inference_service.py)
+- [app/services/memory_service.py](app/services/memory_service.py)
+- [app/services/embedding_service.py](app/services/embedding_service.py)
+- [app/services/orchestrator_service.py](app/services/orchestrator_service.py)
+- [run_aura_chat.ps1](run_aura_chat.ps1)
 
-- Build and run: `docker compose up --build`
-- API available at `http://127.0.0.1:8000`
+## Safety note
 
-## Implemented Services
-
-- Conversation Orchestrator
-- Memory Service
-- Persona Consistency Service
-- Policy and Safety Service
-- Identity and Consent Service
-- Observability Service
-
-## Notes
-
-- This starter uses SQLite persistence with Alembic migrations.
-- No Matter/smart-home/robotics functionality is included by design.
-- If `NVIDIA_NIM_API_KEY` is set, replies are generated by NVIDIA NIM. If it is not set or the call fails, the service falls back to local stub generation.
-- Semantic RAG is enabled: memory is embedded and retrieved by vector similarity, with NIM embeddings when available and a local embedding fallback otherwise.
+Do not commit secrets. Rotate any exposed keys before sharing the repository publicly.
